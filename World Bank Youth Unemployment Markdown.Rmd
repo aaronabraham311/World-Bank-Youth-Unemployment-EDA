@@ -1,0 +1,91 @@
+F
+
+# Preliminary Set-up
+Firstly, we will include the following libraries: 
+
+```
+library(tidyverse)
+library(rworldmap)
+```
+We will also read the .csv file into a tibble using the read_csv function in ggplot2:
+
+``` 
+data <- read_csv("API_ILO_country_YU.csv")
+View(data)
+```
+The View() function allows us to make one important distinction in the data: there are many observations that are not countries. Rather, it is a classification or a regional group. For example, some of the observations include East Asia & Pacific (excluding high income) and Fragile and conflict affected situations. This is an important feature of the dataset that we could use in the future.
+
+# Finding trends
+
+## Question 1: How does youth unemployment change over years?
+
+To answer this question, we will take an average of unemployment rates across 2010 to 2014 and plot it as a histogram.
+
+``` 
+averageYears <- tribble (~year, ~average,
+                         "2010", mean(data$"2010"),
+                         "2011", mean(data$"2011"),
+                         "2012", mean(data$"2012"),
+                         "2013", mean(data$"2013"),
+                         "2014", mean(data$"2014"))
+ggplot(data = averageYears) + geom_histogram(mapping = aes(x = year, y = average, fill = year), stat = "identity")
+```
+From the histogram, it is easy to see that global unemployment rates do not change much over the time period of 2010 - 2015. 
+
+## Question 2: How does unemployment rates compare among G7 countries?
+
+Firstly, we must create a vector of all G7 countries, making it easier to select rows that are G7:
+
+``` 
+g7 <- c("Canada", "France", "Germany", "Italy", "Japan", "United Kingdom", "United States", "European Union")
+```
+
+Now, we must select all observations that are G7 countries. We can use the filter function to select the G7 data. Furthermore, we must calculate the average percentage change in unemployment for each G7 country. Thus, we will create a new tibble using the mutate function. 
+
+``` 
+pcUnemG7 <- data %>% filter(`Country Name` %in% g7) %>% 
+  mutate(averageChange = (`2014` - `2010`)/`2014`)
+arrange(pcUnemG7, averageChange)
+```
+
+Lastly, we will plot the data and come to some conclusions using ggplot2
+
+``` 
+ggplot(pcUnemG7) + geom_bar(mapping = aes(x = `Country Name`, y = `averageChange`,
+                                             fill = `Country Name`), stat = "identity") + coord_flip()
+```
+
+From the histogram, it is clear that most G7 countries were able to decrease the unemployment rate after 2010. The biggest reduction was from Japan. Interestingly, Italy had a large unemployment gain. This can be attributed to the EU bailout issue. Does this signal a change in the membership of G7? Let us keep paying attention to the news. 
+
+## Question 3: Can we depict global employment data using a map?
+
+As a complete beginner to data science and data analysis via R, this was quite a challenge for me. However, I realized that the rworldmap package provides easy to use functions that can make this very easy.
+
+Firstly, we need to join the countries to the map. Fortunately, the World Bank datasets utilize ISO3 code to distinguish the countries. Thus, we can accomplish this task by using the following function:
+
+``` 
+mapped_data <- joinCountryData2Map(data, joinCode = "ISO3",   nameJoinColumn = "Country Code")
+```
+Now, we can create a map using the following function:
+
+``` 
+par(mai=c(0,0,0.2,0),xaxs="i",yaxs="i")
+mapCountryData(mapped_data, nameColumnToPlot = "averageChange")
+```
+The legend depicts the percent change in unemployment. This map shows us a few interesting things:
+
+Asian countries have increased unemployment. This took me by surprise, as I believed that these countries still made large economic advances. Maybe, we should conduct more detailed analyses on this.
+
+European countries have increased unemployment. This trend did not cause any surprises, as they were hit particularly hard by the recession and have taken time to recover.
+
+Northern countries have done well in terms of unemployment decreases. Could this be a product of the concept of a global north and a global south?
+
+# Future considerations.
+
+As my first EDA of a dataset, I certainly learned a lot about plotting and what is most useful to show trends. Specifically, I learned a lot about mapping data. I would like to do the following in the future:
+
+Investigate how unemployment changes in specific continents: I could make a simple animation, or create something more interesting like this analysis of population growth by Hans Rosling: (https://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen)
+
+During this time period, there were a number of countries, such as Greece, Italy and Spain that nearly defaulted. I would like to do some detailed analysis on these countries
+
+There were several observations in the dataset that were classifications rather than countries. My analysis ignored these observations. In future analysis, I would like to examine these observations closely. 
